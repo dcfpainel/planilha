@@ -5,16 +5,26 @@ import pandas as pd
 ID_PLANILHA_PADRAO = '1Evnau06wSxWNj8MKVeJCe4qStbksHBvCRQ5NCl6Q7sg'
 NOME_ABA_PADRAO = 'Página1'
 
-def obter_credenciais():
-    """Localiza o arquivo JSON de credenciais da conta de serviço."""
+import os
+import json
+
+def obter_cliente_gspread():
+    """Autentica no Google Sheets via variável de ambiente GCP_SA_KEY ou arquivo JSON."""
+    if os.getenv("GCP_SA_KEY"):
+        try:
+            info = json.loads(os.getenv("GCP_SA_KEY"))
+            return gspread.service_account_from_dict(info)
+        except Exception as e:
+            print(f"[AVISO] Falha ao ler GCP_SA_KEY de variável de ambiente: {e}")
+
     candidatos = [
         Path('automacao-prad-f068fa0cf06b.json'),
         Path('credenciais.json')
     ] + list(Path('.').glob('*automacao-prad*.json'))
     for p in candidatos:
         if p.exists():
-            return str(p)
-    raise FileNotFoundError("Arquivo de credenciais JSON do Google Cloud não foi encontrado na pasta.")
+            return gspread.service_account(filename=str(p))
+    raise FileNotFoundError("Credenciais do Google Cloud não foram encontradas (nem arquivo JSON nem variável GCP_SA_KEY).")
 
 def upload_para_google_sheets(df=None, id_planilha=ID_PLANILHA_PADRAO, nome_aba=NOME_ABA_PADRAO, sincronizar_todas=True):
     """Envia os dados tratados (DataFrame ou arquivo local) para o Google Sheets."""
@@ -30,8 +40,7 @@ def upload_para_google_sheets(df=None, id_planilha=ID_PLANILHA_PADRAO, nome_aba=
             df = pd.read_excel(arquivo_base)
 
     print(f"-> Conectando ao Google Sheets (ID: {id_planilha[:6]}...{id_planilha[-4:]})...")
-    arquivo_cred = obter_credenciais()
-    gc = gspread.service_account(filename=arquivo_cred)
+    gc = obter_cliente_gspread()
     sh = gc.open_by_key(id_planilha)
 
     # Identifica abas a atualizar
