@@ -244,3 +244,11 @@ print(f"\n-> Exportando {df.shape[0]} linhas...")
 df.to_excel(planilhas_path / 'Base_Tratada_Painel_PRAD.xlsx', index=False)
 df.to_csv(planilhas_path / 'Base_Tratada_Painel_PRAD.csv', index=False, sep=';', encoding='utf-8-sig')
 print("-> Arquivos gerados com sucesso! Verifique a pasta.")
+
+# 8. Upload para o Google Sheets (Looker Studio)
+print("\n-> Enviando dados tratados para o Google Sheets...")
+try:
+    from upload_sheets import upload_para_google_sheets
+    upload_para_google_sheets(df)
+except Exception as e:
+    print(f"[AVISO] Não foi possível atualizar o Google Sheets automaticamente: {e}")
