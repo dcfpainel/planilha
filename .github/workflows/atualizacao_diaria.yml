@@ -25,12 +25,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: 4. Executar automação (Download -> Tratamento -> Google Sheets)
+      - name: 4. Executar automação (Drive -> Tratamento -> Google Sheets)
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-          EMAIL_USER: ${{ secrets.EMAIL_USER }}
-          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-          EMAIL_IMAP_SERVER: ${{ secrets.EMAIL_IMAP_SERVER || 'imap.gmail.com' }}
-          EMAIL_SUBJECT: ${{ secrets.EMAIL_SUBJECT || 'Execução da despesa' }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
         run: |
           python pipeline.py
