@@ -5,25 +5,32 @@ from download_email import baixar_planilha_email
 
 def executar_pipeline():
     print("=" * 60)
-    print(" [1/3] DOWNLOAD DA PLANILHA DO E-MAIL")
+    print(" [1/3] OBTENÇÃO DA PLANILHA (GOOGLE DRIVE / LOCAL)")
     print("=" * 60)
 
-    # Se as credenciais de e-mail estiverem configuradas, tenta baixar
-    if os.getenv("EMAIL_USER") and os.getenv("EMAIL_PASS"):
-        arquivo = baixar_planilha_email()
-        if not arquivo:
-            print("[ERRO] Falha ao baixar anexo do e-mail. Abortando pipeline.")
-            sys.exit(1)
-    else:
-        print("[AVISO] Variáveis de e-mail (EMAIL_USER / EMAIL_PASS) não detectadas.")
-        # Verifica se já existe uma planilha local para continuar (ex: testes locais)
+    # Tenta baixar do Google Drive via Service Account (Opção B)
+    arquivo = None
+    try:
+        from download_drive import baixar_planilha_drive
+        arquivo = baixar_planilha_drive()
+    except Exception as e:
+        print(f"[AVISO] Tentativa de download do Google Drive não concluída: {e}")
+
+    if not arquivo:
         pasta_planilhas = Path("./planilhas")
-        planilha_existente = pasta_planilhas / "Execução da despesa.xlsx"
-        if planilha_existente.exists():
-            print(f"-> Utilizando planilha local existente: {planilha_existente}")
-        else:
-            print("[ERRO] Nenhuma planilha encontrada em ./planilhas e sem credenciais de e-mail.")
-            sys.exit(1)
+        candidatos = [
+            pasta_planilhas / "Execução da despesa.xlsx",
+            pasta_planilhas / "Execução da despesa-1.xlsx"
+        ]
+        for p in candidatos:
+            if p.exists():
+                arquivo = p
+                print(f"-> Utilizando planilha local existente: {arquivo}")
+                break
+
+    if not arquivo:
+        print("[ERRO] Nenhuma planilha encontrada no Google Drive nem em ./planilhas.")
+        sys.exit(1)
 
     print("\n" + "=" * 60)
     print(" [2/3] TRATAMENTO DE DADOS E GERAÇÃO DA BASE")

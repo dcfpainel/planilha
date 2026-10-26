@@ -53,9 +53,10 @@ for c in colunas_valores:
 # 5. Regras de negócio
 
 # 5.1 Com contrato / Sem contrato
+variacoes_contrato = r'contrat|ctn'
 df['Status_Contrato'] = np.where(
-    df['PI_Nome'].astype(str).str.contains('CONTRATO', case=False, na=False) |
-    df['PI_Cod'].astype(str).str.contains('CTN', case=False, na=False),
+    df['PI_Nome'].astype(str).str.contains(variacoes_contrato, case=False, na=False) |
+    df['PI_Cod'].astype(str).str.contains(variacoes_contrato, case=False, na=False),
     'Com contrato',
     'Sem contrato'
 )
@@ -180,6 +181,17 @@ df['Origem_Empenho'] = np.where(
     'Exercício atual',
     'Restos a pagar'
 )
+# Saldos a liquidar segregados por origem (evita contaminação do RAP pelo exercício atual)
+df['Saldo_a_Liquidar_RAP'] = np.where(
+    df['Origem_Empenho'] == 'Restos a pagar',
+    df['RAP_NP_Total'] - df['RAP_NP_Liquidados'],
+    0.0
+)
+df['Saldo_a_Liquidar_Exercicio'] = np.where(
+    df['Origem_Empenho'] == 'Exercício atual',
+    df['Despesas_Empenhadas'] - df['Despesas_Liquidadas'],
+    0.0
+)
 df['Saldo_a_Pagar'] = df['Execucao_Liquidacao'] - df['Total_Pago_Geral']
 df['Qtd_Empenho'] = 1
 df['Flag_Inconsistencia'] = np.where(
@@ -232,7 +244,9 @@ print(f"Empenhado ............. {df['Despesas_Empenhadas'].sum():>18,.2f}")
 print(f"RAP NP (insc.+reinsc.)  {df['RAP_NP_Total'].sum():>18,.2f}")
 print(f"(1) Montante .......... {df['Montante'].sum():>18,.2f}")
 print(f"(2) Execução/Liquidação {df['Execucao_Liquidacao'].sum():>18,.2f}")
-print(f"    Saldo a liquidar .. {df['Saldo_a_Liquidar'].sum():>18,.2f}")
+print(f"    Saldo a liquidar Total ... {df['Saldo_a_Liquidar'].sum():>18,.2f}")
+print(f"      -> Saldo RAP (só diminui): {df['Saldo_a_Liquidar_RAP'].sum():>18,.2f}")
+print(f"      -> Saldo Exercício 2026:   {df['Saldo_a_Liquidar_Exercicio'].sum():>18,.2f}")
 print(f"(3) Pagamento ......... {df['Total_Pago_Geral'].sum():>18,.2f}")
 print(f"    Saldo a pagar ..... {df['Saldo_a_Pagar'].sum():>18,.2f}")
 print(f"Linhas com saldo negativo: {(df['Saldo_a_Liquidar'] < -tolerancia).sum()}")
