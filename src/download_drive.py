@@ -3,7 +3,10 @@ import os
 import json
 import requests
 from google.auth.transport.requests import Request
-from upload_sheets import obter_cliente_gspread
+try:
+    from src.upload_sheets import obter_cliente_gspread
+except ImportError:
+    from upload_sheets import obter_cliente_gspread
 
 # ID da pasta do Google Drive onde o Apps Script salva as planilhas
 # Pode ser configurado via variável de ambiente GOOGLE_DRIVE_FOLDER_ID

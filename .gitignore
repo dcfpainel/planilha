@@ -1,6 +1,5 @@
 .venv/
 planilhas/
-docs/
 .vscode/
 __pycache__/
 *.json

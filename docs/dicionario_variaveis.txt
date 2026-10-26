@@ -1,0 +1,184 @@
+================================================================================
+DICIONÁRIO DE VARIÁVEIS E ESTRUTURA DE DADOS
+Script: src/tratamento.py (Painel de Contabilidade - PRAD)
+================================================================================
+
+1. VARIÁVEIS DE AMBIENTE E CONTROLE DO SCRIPT
+--------------------------------------------------------------------------------
+
+- planilhas_path (Path):
+    Caminho relativo para a pasta onde ficam os arquivos de entrada e saída ('./planilhas').
+
+- planilha_original (Path):
+    Caminho do arquivo Excel de origem. Verifica primeiro 'Execução da despesa-1.xlsx' 
+    e, se não existir, utiliza 'Execução da despesa.xlsx'.
+
+- df (pandas.DataFrame):
+    Estrutura principal contendo a tabela de dados carregada do Excel e todas 
+    as colunas calculadas e tratadas.
+
+- colunas_valores (list):
+    Lista com os nomes das colunas numéricas de valores financeiros brutos que 
+    têm valores nulos convertidos para 0.0.
+
+- mapa_naturezas_manual (dict):
+    Dicionário de mapeamento manual de códigos de 6 dígitos da natureza da 
+    despesa para suas descrições completas/oficiais.
+
+- mapa_naturezas_curto (dict):
+    Dicionário de mapeamento manual de códigos de 6 dígitos da natureza da 
+    despesa para suas descrições encurtadas, otimizadas para gráficos no Looker Studio.
+
+- ano_vigente (Int64):
+    Valor escalar referente ao ano corrente de execução (calculado como o ano 
+    máximo encontrado na coluna 'Ano_Lancamento').
+
+- mask (pandas.Series boolean):
+    Máscara lógica para identificar registros cujo ano de emissão do empenho 
+    é diferente do ano vigente (Restos a Pagar).
+
+- tolerancia (float):
+    Constante de tolerância (0.01) para tratamento de pequenas variações de 
+    arredondamento em verificações financeiras.
+
+- limpa_codigo (function):
+    Função utilitária que converte números e textos de códigos removendo o sufixo 
+    '.0' gerado pela leitura de floats do Excel.
+
+- limpa_cnpj_cpf (function):
+    Função utilitária que aplica limpa_codigo e preenche com zeros à esquerda:
+    zfill(11) para CPF (até 11 dígitos) e zfill(14) para CNPJ (entre 12 e 14 dígitos).
+
+
+2. COLUNAS DO DATAFRAME (BASE TRATADA / BASE_TRATADA_PAINEL_PRAD)
+--------------------------------------------------------------------------------
+
+[01] UG_Responsavel_Cod (Texto)
+     Código de identificação da Unidade Gestora Responsável.
+
+[02] UG_Responsavel_Nome (Texto)
+     Nome da Unidade Gestora Responsável, formatado em Title Case.
+
+[03] Favorecido_CNPJ (Texto / Número)
+     CNPJ ou CPF bruto do fornecedor/favorecido.
+
+[04] Favorecido_Nome (Texto)
+     Nome ou Razão Social do favorecido, formatado em Title Case.
+
+[05] PI_Cod (Texto)
+     Código do Plano Interno da despesa (ex: M8282G01CTN).
+
+[06] PI_Nome (Texto)
+     Nome/Descrição do Plano Interno (ex: CONTRATOS EM GERAL).
+
+[07] Natureza_Despesa_Cod (Texto)
+     Código de 6 dígitos da Natureza da Despesa (ex: 339039).
+
+[08] Natureza_Despesa_Nome (Texto)
+     Descrição completa/oficial da Natureza da Despesa.
+
+[09] NE_CCor_Empenho (Texto)
+     Número da Nota de Empenho ou identificador de Conta Corrente do empenho.
+
+[10] NE_CCor_Info_Complementar (Texto)
+     Informações complementares vinculadas à Nota de Empenho ou Minuta UASG.
+
+[11] Ano_Emissao_Empenho (Inteiro / Int64)
+     Ano em que a Nota de Empenho foi emitida.
+
+[12] Ano_Lancamento (Inteiro / Int64)
+     Ano em que o lançamento contábil foi realizado no sistema.
+
+[13] Despesas_Empenhadas (Decimal / R$)
+     Valor de despesas empenhadas no exercício atual (ano vigente).
+
+[14] Despesas_Liquidadas (Decimal / R$)
+     Valor de despesas liquidadas no exercício atual (ano vigente).
+
+[15] Despesas_Pagas (Decimal / R$)
+     Valor de despesas pagas no exercício atual (ano vigente).
+
+[16] RAP_NP_Inscritos (Decimal / R$)
+     Valor de Restos a Pagar Não Processados Inscritos de anos anteriores.
+
+[17] RAP_NP_Reinscritos (Decimal / R$)
+     Valor de Restos a Pagar Não Processados Reinscritos de anos anteriores.
+
+[18] RAP_NP_Liquidados (Decimal / R$)
+     Valor de Restos a Pagar Não Processados que foram Liquidados no exercício.
+
+[19] RAP_NP_Pagos (Decimal / R$)
+     Valor de Restos a Pagar Não Processados que foram Pagos no exercício.
+
+[20] Total_Geral (Decimal / R$)
+     Coluna original da exportação contendo o valor total da linha.
+
+[21] Status_Contrato (Texto - Classificação)
+     Indica 'Com contrato' (se PI contém CONTRATO ou CTN) ou 'Sem contrato'.
+
+[22] Categoria_Natureza (Texto - Classificação)
+     Indica 'Despesas Correntes' (código iniciando com 3) ou 'Despesas de Capital' 
+     (código iniciando com 4).
+
+[23] Natureza_Nome_Curto (Texto - Nome Encurtado)
+     Descrição simplificada/encurtada da Natureza da Despesa, otimizada para visualização em gráficos.
+
+[24] RAP_NP_Total (Decimal / R$ - Métrica)
+     Soma do total de RAP Não Processado a Pagar (RAP_NP_Inscritos + RAP_NP_Reinscritos).
+
+[25] Montante (Decimal / R$ - Métrica)
+     Montante orçamentário total (Despesas_Empenhadas + RAP_NP_Total).
+
+[26] Execucao_Liquidacao (Decimal / R$ - Métrica)
+     Execução total por liquidação (Despesas_Liquidadas + RAP_NP_Liquidados).
+
+[27] Saldo_a_Liquidar (Decimal / R$ - Métrica)
+     Saldo que resta a liquidar (Montante - Execucao_Liquidacao).
+
+[28] Total_RAP_Pagos (Decimal / R$ - Métrica)
+     Total de Restos a Pagar pagos no exercício (igual a RAP_NP_Pagos).
+
+[29] Total_Pago_Geral (Decimal / R$ - Métrica)
+     Total financeiro efetivamente pago (Despesas_Pagas + Total_RAP_Pagos).
+
+[30] Ano_Vigente (Inteiro / Int64)
+     Ano de referência do exercício corrente (valor constante em todas as linhas).
+
+[31] Anos_RAP (Inteiro / Int64 - Nulo <NA> para ano vigente)
+     Ano de emissão do empenho apenas para restos a pagar (nulo quando Ano_Emissao_Empenho == Ano_Vigente).
+
+[32] Ano_Empenho_Filtro (Texto - Filtro)
+     Ano de emissão do empenho formatado como texto ('2023', '2024', ou 'Sem ano').
+
+[33] Origem_Empenho (Texto - Classificação)
+     Classifica a origem do empenho em 'Exercício atual' ou 'Restos a pagar'.
+
+[34] Saldo_a_Pagar (Decimal / R$ - Métrica)
+     Saldo liquidado e ainda pendente de pagamento (Execucao_Liquidacao - Total_Pago_Geral).
+
+[35] Qtd_Empenho (Inteiro - Contagem)
+     Valor numérico fixo em 1 para contagem de registros no Looker Studio.
+
+[36] Flag_Inconsistencia (Texto - Controle)
+     Indicador de auditoria: 'Verificar' (se houver saldo a liquidar negativo ou pagamento maior que a liquidação além da tolerância) ou 'OK'.
+
+[37] Data_Atualizacao (Data / Timestamp)
+     Data de execução do tratamento dos dados (formato YYYY-MM-DD).
+
+[38] UG_Responsavel_Filtro (Texto - Filtro Looker)
+     Campo concatenado no formato: "UG_Responsavel_Cod - UG_Responsavel_Nome".
+
+[39] Favorecido_Filtro (Texto - Filtro Looker)
+     Campo concatenado no formato: "Favorecido_CNPJ (com zfill 11/14) - Favorecido_Nome".
+
+[40] Natureza_Filtro (Texto - Filtro Looker)
+     Campo concatenado no formato: "Natureza_Despesa_Cod - Natureza_Despesa_Nome".
+
+[41] Saldo_a_Liquidar_RAP (Decimal / R$ - Métrica)
+     Saldo que resta a liquidar exclusivo de Restos a Pagar (RAP_NP_Total - RAP_NP_Liquidados).
+     Garantido matematicamente que apenas diminui ao longo do ano.
+
+[42] Saldo_a_Liquidar_Exercicio (Decimal / R$ - Métrica)
+     Saldo que resta a liquidar exclusivo do ano corrente (Despesas_Empenhadas - Despesas_Liquidadas).
+     Aumenta conforme novas despesas são empenhadas e diminui quando são liquidadas.
+
