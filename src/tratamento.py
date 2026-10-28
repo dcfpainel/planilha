@@ -232,7 +232,8 @@ def tratar_planilha_despesas(caminho_planilha=None, pasta_saida='./planilhas', s
         'Verificar',
         'OK'
     )
-    df['Data_Atualizacao'] = pd.Timestamp.now().floor('s')
+    # Data e hora da atualização fixada no Horário de Brasília (UTC-3)
+    df['Data_Atualizacao'] = pd.Timestamp.now(tz='America/Sao_Paulo').tz_localize(None).floor('s')
 
     # 5.7 Colunas de Filtro com Código e Nome (para o Looker Studio)
     df['UG_Responsavel_Filtro'] = (
